@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>データの持ち方 - URLラベルマップ</title>
+  <link rel="stylesheet" href="main.css">
+</head>
+<body>
+  <header>
+    <h1>データの持ち方について</h1>
+    <nav><a href="index.html">アプリに戻る</a></nav>
+  </header>
+
+  <section class="panel">
+    <h2>全体の流れ(図)</h2>
+    <svg viewBox="0 0 720 330" role="img" aria-label="データの流れの図: あなたのブラウザが、Google Driveのアプリ専用領域に保存し、登録したURLのサイトからタイトルを取得する。運営者はデータを見られない。" style="width:100%;height:auto;font-family:Meiryo,'Yu Gothic',sans-serif;font-size:14px">
+      <defs>
+        <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#52606d"/></marker>
+      </defs>
+      <rect x="0" y="0" width="720" height="330" rx="8" fill="#fff"/>
+
+      <rect x="250" y="20" width="220" height="90" rx="10" fill="#e8f0fe" stroke="#2b6cb0" stroke-width="2"/>
+      <text x="360" y="50" text-anchor="middle" font-weight="bold" fill="#1f2933">あなたのブラウザ</text>
+      <text x="360" y="74" text-anchor="middle" fill="#1f2933">このアプリ(静的ページ)</text>
+      <text x="360" y="94" text-anchor="middle" fill="#52606d" font-size="12">URLとラベルを登録・マップ表示</text>
+
+      <rect x="20" y="200" width="270" height="105" rx="10" fill="#e6f4ea" stroke="#2f855a" stroke-width="2"/>
+      <text x="155" y="230" text-anchor="middle" font-weight="bold" fill="#1f2933">あなたのGoogle Drive</text>
+      <text x="155" y="254" text-anchor="middle" fill="#1f2933">アプリ専用の隠し領域</text>
+      <text x="155" y="276" text-anchor="middle" fill="#52606d" font-size="12">URL・ラベル・タイトルを1つのJSONで保存</text>
+      <text x="155" y="294" text-anchor="middle" fill="#52606d" font-size="12">(容量はあなたのDrive)</text>
+
+      <rect x="430" y="200" width="270" height="105" rx="10" fill="#fff" stroke="#9aa5b1" stroke-width="2"/>
+      <text x="565" y="236" text-anchor="middle" font-weight="bold" fill="#1f2933">登録したURLのサイト</text>
+      <text x="565" y="262" text-anchor="middle" fill="#52606d" font-size="12">ページタイトルを取得するため</text>
+      <text x="565" y="280" text-anchor="middle" fill="#52606d" font-size="12">ブラウザが直接アクセス</text>
+
+      <line x1="300" y1="112" x2="190" y2="198" stroke="#52606d" stroke-width="2" marker-start="url(#ar)" marker-end="url(#ar)"/>
+      <text x="212" y="146" text-anchor="end" fill="#1f2933" font-size="13">① 保存・読み込み</text>
+      <text x="212" y="164" text-anchor="end" fill="#52606d" font-size="12">(Googleログイン)</text>
+
+      <line x1="420" y1="112" x2="530" y2="198" stroke="#52606d" stroke-width="2" marker-end="url(#ar)"/>
+      <text x="510" y="146" fill="#1f2933" font-size="13">② タイトル取得</text>
+
+      <rect x="530" y="28" width="170" height="64" rx="10" fill="#fff4e5" stroke="#f0b35a" stroke-width="2" stroke-dasharray="6 4"/>
+      <text x="615" y="56" text-anchor="middle" fill="#1f2933" font-weight="bold">運営者(サーバーなし)</text>
+      <text x="615" y="77" text-anchor="middle" fill="#b42318" font-size="13">データは見えません</text>
+      <line x1="472" y1="60" x2="528" y2="60" stroke="#b42318" stroke-width="2" stroke-dasharray="4 3"/>
+      <text x="500" y="52" text-anchor="middle" fill="#b42318" font-size="16" font-weight="bold">×</text>
+    </svg>
+    <ol>
+      <li>Googleアカウントでログインすると、あなたのブラウザが、あなたのGoogle Driveのアプリ専用領域にデータを保存・読み込みします。</li>
+      <li>URLを登録したとき、ページタイトルを取るために、ブラウザが登録したURLのサイトへ直接アクセスします。</li>
+      <li>運営者のサーバーやデータベースはありません。データは運営者を通らず、運営者も見られません。</li>
+    </ol>
+  </section>
+
+  <section class="panel">
+    <h2>保存される場所</h2>
+    <p>登録したURL・ラベル・ページタイトルは、<strong>あなたのGoogle Driveにあるこのアプリ専用の領域</strong>(appDataFolder)に、1つのJSONファイルとして保存されます。</p>
+    <ul>
+      <li>この領域は、Google DriveのUIや他のアプリからは見えません。</li>
+      <li>保存容量は、あなたのGoogle Driveの容量を使います。</li>
+      <li>このアプリは自前のサーバーやデータベースを持っていません。運営者が登録内容を見ることはできません。</li>
+      <li>アプリが要求する権限は、このアプリ専用領域の読み書き(<code>drive.appdata</code>)だけです。Driveの他のファイルには触れません。</li>
+    </ul>
+  </section>
+
+  <section class="panel">
+    <h2>ユーザー情報</h2>
+    <ul>
+      <li>ログインにはGoogleアカウントを使います。別のユーザー登録は不要で、パスワードもこのアプリには渡りません。</li>
+      <li>画面中央に表示する名前は、ログイン時にGoogleから取得した表示名です。保存はしません。</li>
+      <li>ログイン状態(アクセストークン)はこのページのメモリ上にだけ置き、ブラウザには保存しません。ページを閉じる、または一定時間が過ぎると、再ログインが必要です。</li>
+    </ul>
+  </section>
+
+  <section class="panel">
+    <h2>ページタイトルの取得</h2>
+    <p>URLを登録すると、あなたのブラウザが登録したURLのサイトへ直接アクセスして、ページタイトルを取得します(外部の中継サーバーは使いません)。そのため、登録したURLのサイトには、通常の閲覧と同じようにアクセスの記録が残ることがあります。取得できなかった場合は、URLをそのまま表示します。</p>
+  </section>
+
+  <section class="panel">
+    <h2>データの取り出しと削除</h2>
+    <ul>
+      <li>「JSONでダウンロード」「画像(PNG)でダウンロード」で、いつでも手元に保存できます。</li>
+      <li>URLごとの削除は、「登録済みURLの一覧・削除」から行えます。</li>
+      <li>「すべてのデータを削除」を押すと、Google Drive上のデータファイルを削除します。</li>
+      <li>ログアウトすると、このアプリに与えた権限を取り消します。Googleアカウントの「サードパーティ アクセス」画面からも取り消せます。</li>
+    </ul>
+  </section>
+</body>
+</html>

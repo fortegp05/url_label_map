@@ -1,0 +1,60 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>プライバシーポリシー - URLラベルマップ</title>
+  <link rel="stylesheet" href="main.css">
+</head>
+<body>
+  <header>
+    <h1>プライバシーポリシー</h1>
+    <nav><a href="index.html">アプリに戻る</a> / <a href="about.html">データの持ち方(図解)</a></nav>
+  </header>
+
+  <section class="panel">
+    <h2>このアプリについて</h2>
+    <p>URLラベルマップは、URLにラベルを付けて整理し、マインドマップで表示する個人向けのWebアプリです。自前のサーバーやデータベースはなく、すべての処理は利用者のブラウザ上で行われます。</p>
+  </section>
+
+  <section class="panel">
+    <h2>取得・利用する情報</h2>
+    <ul>
+      <li><strong>利用者が登録した情報</strong>: URL、ラベル、ページタイトル。マインドマップの表示と検索・ダウンロードのためだけに使います。</li>
+      <li><strong>Googleアカウントの表示名</strong>: マップの中央に表示するためだけに、ログイン時に取得します。保存はしません。</li>
+      <li>メールアドレスなど、上記以外のアカウント情報は取得しません。</li>
+    </ul>
+  </section>
+
+  <section class="panel">
+    <h2>Googleのデータの扱い</h2>
+    <ul>
+      <li>このアプリが要求するGoogleの権限は、Google Driveの<strong>アプリ専用領域</strong>の読み書き(<code>drive.appdata</code>)だけです。利用者のDriveにある他のファイルには触れません。</li>
+      <li>登録した情報は、利用者自身のGoogle Driveのアプリ専用領域に、1つのJSONファイルとして保存されます。運営者は、このデータを見ることも、受け取ることも、保存することもできません。</li>
+      <li>Googleから取得した情報を、第三者へ提供・販売することはありません。広告にも使いません。人が読むこともありません。</li>
+      <li>このアプリによるGoogle APIから受け取った情報の利用と他のアプリへの転送は、<a href="https://developers.google.com/terms/api-services-user-data-policy" target="_blank" rel="noopener noreferrer">Google API サービスのユーザーデータに関するポリシー</a>(限定使用の要件を含む)に準拠します。</li>
+    </ul>
+  </section>
+
+  <section class="panel">
+    <h2>外部への通信</h2>
+    <p>URLを登録すると、ページタイトルを取得するために、利用者のブラウザが登録したURLのサイトへ直接アクセスします。外部の中継サーバーは使いません。利用者の情報を、このアプリの運営者を含む第三者のサーバーへ送ることはありません。</p>
+    <p>ログインのため、Googleのログイン機能(Google Identity Services)を読み込みます。</p>
+  </section>
+
+  <section class="panel">
+    <h2>データの削除と権限の取り消し</h2>
+    <ul>
+      <li>アプリ内の「すべてのデータを削除」で、Google Drive上のデータファイルを削除できます。</li>
+      <li>「ログアウト」で、このアプリに与えた権限を取り消します。Googleアカウントの「サードパーティ アクセス」画面からも取り消せます。</li>
+      <li>再読み込み後に再ログインを省くため、Googleが発行するアクセストークン(約1時間で失効)を、そのタブの sessionStorage にだけ保存します(タブを閉じると消えます)。あわせて「ログイン済み」という印だけをブラウザ(localStorage)に保存します。登録したURLやラベルはブラウザには保存しません。「ログアウト」で、どちらも消えます。</li>
+    </ul>
+  </section>
+
+  <section class="panel">
+    <h2>お問い合わせ・変更</h2>
+    <p>お問い合わせは、GitHubのリポジトリのIssuesからお願いします。このポリシーを変更する場合は、このページで告知します。</p>
+    <p>このアプリはMITライセンスのオープンソースで、フォークして別の運営者が公開することがあります。その場合、そのアプリの運営者・連絡先は、フォーク先の公開ページに従います。</p>
+  </section>
+</body>
+</html>

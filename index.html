@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>URLラベルマップ</title>
+  <link rel="stylesheet" href="main.css">
+</head>
+<body>
+  <header>
+    <h1>URLラベルマップ</h1>
+    <nav><a href="about.html">データの持ち方について</a></nav>
+  </header>
+
+  <div id="status" role="status" aria-live="polite"></div>
+  <div id="localBanner" class="banner" hidden>ローカル試用モードです。データはこのブラウザ内にだけ保存され、Google Driveには保存されません。</div>
+  <div id="reauth" class="banner warn" hidden>
+    ログインの有効期限が切れました。未保存の変更はこの画面に保持しています。
+    <button id="reauthBtn" type="button">再ログインして保存</button>
+  </div>
+
+  <section id="loginPanel" hidden>
+    <p>気になったURLにラベルを付けてストックし、マインドマップで眺めるためのアプリです。</p>
+    <p>データはあなたのGoogle Driveのアプリ専用領域にだけ保存されます。<a href="about.html">詳しくはこちら</a></p>
+    <button id="loginBtn" type="button">Googleでログイン</button>
+  </section>
+
+  <main id="app" hidden>
+    <section class="panel">
+      <form id="addForm" autocomplete="off">
+        <label>URL
+          <input id="urlInput" type="url" required maxlength="2000" placeholder="https://example.com/article">
+        </label>
+        <label>ラベル(カンマ・スペース区切りで複数可)
+          <span class="combo">
+            <input id="labelInput" type="text" required maxlength="300" placeholder="アジャイル, スクラム" role="combobox" aria-expanded="false" aria-controls="labelMenu">
+            <button id="labelToggle" type="button" class="combo-toggle" aria-label="登録済みのラベルから選ぶ" tabindex="-1">▼</button>
+            <ul id="labelMenu" role="listbox" hidden></ul>
+          </span>
+        </label>
+        <button type="submit">登録</button>
+      </form>
+    </section>
+
+    <section class="panel toolbar">
+      <label>ラベル検索
+        <input id="searchInput" type="search" placeholder="ラベル名で検索してハイライト">
+      </label>
+      <button id="fitBtn" type="button">全体を表示</button>
+      <button id="expandAllBtn" type="button">すべて開く</button>
+      <button id="collapseAllBtn" type="button">すべて閉じる</button>
+      <button id="jsonBtn" type="button">JSONでダウンロード</button>
+      <button id="pngBtn" type="button">画像(PNG)でダウンロード</button>
+    </section>
+
+    <section id="mapWrap">
+      <svg id="map" xmlns="http://www.w3.org/2000/svg" aria-label="ラベルとURLのマインドマップ"></svg>
+      <p id="emptyMsg" hidden>まだ何も登録されていません。上のフォームからURLとラベルを登録してください。</p>
+    </section>
+    <p class="hint">ラベルをクリックするとそのURLが開きます。URLをクリックすると新しいタブで開きます。ドラッグで移動、ホイールで拡大縮小できます。</p>
+
+    <details class="panel">
+      <summary>登録済みURLの一覧・削除 (<span id="count">0</span>件)</summary>
+      <ul id="list"></ul>
+    </details>
+
+    <section class="panel account">
+      <button id="logoutBtn" type="button">ログアウト</button>
+      <button id="deleteAllBtn" type="button" class="danger">すべてのデータを削除</button>
+    </section>
+  </main>
+
+  <script src="main.js"></script>
+  <script src="https://accounts.google.com/gsi/client" async defer></script>
+</body>
+</html>
