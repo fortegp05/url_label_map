@@ -80,7 +80,7 @@ function normalize(raw) {
     const url = parseHttpUrl(e && e.url);
     if (!url || seen.has(url)) continue;
     const labels = Array.isArray(e.labels)
-      ? [...new Set(e.labels.filter((l) => typeof l === 'string').map((l) => l.trim()).filter(Boolean))].slice(0, LIMIT.labelsPerUrl)
+      ? [...new Set(e.labels.filter((l) => typeof l === 'string').map((l) => l.trim().slice(0, LIMIT.label)).filter(Boolean))].slice(0, LIMIT.labelsPerUrl)
       : [];
     if (!labels.length) continue;
     seen.add(url);

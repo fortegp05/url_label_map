@@ -2,7 +2,6 @@
 
 気になったURLにラベル(複数可)を付けてストックし、マインドマップで眺める静的サイトです。データは利用者自身のGoogle Driveのアプリ専用領域(appDataFolder)に保存します。自前のDB・サーバーはありません。
 
-- 方針: `../docs/plans/2026-10-25-url-label-map.md`、`../docs/plans/2026-10-28-url-label-map-selfuse.md`(issue fortegp05/Issues#29)
 - 構成: 素のHTML・JS・CSS(ビルドなし)
 
 ## ローカルで動かす
