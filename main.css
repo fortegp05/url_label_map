@@ -1,61 +1,139 @@
+/* 電脳空間風のデザイン。マップが画面全体で、操作は呼び出し式のリング型メニュー(スマホ=右下固定、PC=画面端にカーソルを寄せると画面外から入ってくる)。
+   背景は青+中心に集まる奥行きのある線(bg.js)。ダーク固定の単一テーマ。 */
+:root {
+  --bg1: #12306e;
+  --bg2: #2a62c4;
+  --ink: #eaf6ff;
+  --sub: #a9c8ec;
+  --ring: #e4f8ff;
+  --glow: #8aeaff;
+  --hit: #ff6b86;
+  --panel: rgba(12, 32, 84, .9);
+  --edge: rgba(160, 225, 255, .45);
+  --field: rgba(6, 18, 52, .55);
+  --gx: max(16px, env(safe-area-inset-left, 0px));
+  --gr: max(16px, env(safe-area-inset-right, 0px));
+  --gb: calc(16px + env(safe-area-inset-bottom, 0px));
+  --font: Consolas, "BIZ UDGothic", "Yu Gothic", Meiryo, monospace;
+  color-scheme: dark;
+}
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { height: 100%; }
 body {
-  margin: 0 auto;
-  max-width: 1100px;
-  padding: 12px 16px 48px;
-  font-family: Meiryo, "Yu Gothic", "Hiragino Sans", sans-serif;
-  color: #1f2933;
-  background: #f7f8fa;
-  line-height: 1.6;
+  margin: 0;
+  font-family: var(--font);
+  color: var(--ink);
+  line-height: 1.5;
+  background-color: var(--bg1);
+  background-image: radial-gradient(ellipse at 50% 45%, var(--bg2), transparent 75%), linear-gradient(180deg, #143a82, #0d2554);
+  background-attachment: fixed;
 }
-header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
-h1 { font-size: 1.4rem; margin: 8px 0; }
-a { color: #2b6cb0; }
-button {
-  font: inherit;
-  padding: 6px 12px;
-  border: 1px solid #9aa5b1;
-  border-radius: 6px;
-  background: #fff;
-  cursor: pointer;
-}
-button:hover { background: #eef2f6; }
-button.danger { color: #b42318; border-color: #b42318; }
-input[type="url"], input[type="text"], input[type="search"] {
-  display: block;
-  width: 100%;
-  font: inherit;
-  padding: 6px 8px;
-  border: 1px solid #9aa5b1;
-  border-radius: 6px;
-}
-.panel { background: #fff; border: 1px solid #d8dee4; border-radius: 8px; padding: 12px; margin: 12px 0; }
-#addForm { display: grid; grid-template-columns: 1fr 1fr auto; gap: 12px; align-items: end; }
-#addForm label, .toolbar label { font-size: 0.85rem; }
-.toolbar { display: flex; flex-wrap: wrap; gap: 8px; align-items: end; }
-.toolbar label { flex: 1 1 220px; }
-.banner { background: #e8f0fe; border: 1px solid #aac4f5; border-radius: 6px; padding: 8px 12px; margin: 8px 0; }
-.banner.warn { background: #fff4e5; border-color: #f0b35a; }
-#status { min-height: 1.6em; font-size: 0.9rem; }
-#status.error { color: #b42318; }
-#mapWrap { position: relative; background: #fff; border: 1px solid #d8dee4; border-radius: 8px; }
-#map { display: block; width: 100%; height: 70vh; min-height: 360px; touch-action: none; cursor: grab; }
-#map:active { cursor: grabbing; }
-#emptyMsg { position: absolute; inset: 0; display: flex; align-items: center; justify-content: center; margin: 0; color: #52606d; pointer-events: none; }
-.combo { position: relative; display: block; }
-.combo input { padding-right: 32px; }
-.combo-toggle { position: absolute; top: 1px; right: 1px; bottom: 1px; width: 30px; padding: 0; border: 0; border-left: 1px solid #d8dee4; border-radius: 0 5px 5px 0; background: #f3f5f7; font-size: 0.7rem; }
-#labelMenu { position: absolute; z-index: 5; left: 0; right: 0; top: 100%; margin: 2px 0 0; padding: 0; list-style: none; max-height: 220px; overflow-y: auto; background: #fff; color: #1f2933; border: 1px solid #9aa5b1; border-radius: 6px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15); }
-#labelMenu[hidden] { display: none; }
-#labelMenu li { padding: 6px 10px; cursor: pointer; font-size: 1rem; }
-#labelMenu li:hover, #labelMenu li.active { background: #e8f0fe; }
-#emptyMsg[hidden] { display: none; }
-.hint { font-size: 0.8rem; color: #52606d; }
-#list { list-style: none; margin: 8px 0 0; padding: 0; }
-#list li { display: flex; gap: 8px; align-items: center; padding: 6px 0; border-top: 1px solid #eef0f2; }
-#list .item { flex: 1; min-width: 0; overflow-wrap: anywhere; }
-#list .chips { font-size: 0.8rem; color: #52606d; }
-.account { display: flex; gap: 8px; justify-content: space-between; }
-@media (max-width: 640px) {
-  #addForm { grid-template-columns: 1fr; }
-}
+a { color: var(--glow); }
+
+/* ---- アプリ画面 ---- */
+body.app { overflow: hidden; padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+#bg { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; }
+#map { position: fixed; inset: 0; width: 100%; height: 100%; touch-action: none; cursor: grab; user-select: none; -webkit-user-select: none; }
+#map.drag { cursor: grabbing; }
+.node { cursor: pointer; }
+.spin { transform-box: fill-box; transform-origin: center; animation: spin 48s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+@media (prefers-reduced-motion: reduce) { .spin { animation: none; } }
+#emptyMsg { position: fixed; inset: 0; display: flex; align-items: flex-end; justify-content: center; padding: 0 24px 22vh; margin: 0; text-align: center; color: var(--sub); pointer-events: none; }
+
+#dim { position: fixed; inset: 0; background: rgba(2, 8, 34, .6); opacity: 0; pointer-events: none; transition: opacity .35s; z-index: 10; }
+#dim.on { opacity: 1; }
+.hud { position: fixed; left: var(--gx); top: calc(12px + env(safe-area-inset-top, 0px)); pointer-events: none; z-index: 12; opacity: 0; visibility: hidden; transition: opacity .35s, visibility .35s; }
+.hud.on { opacity: 1; visibility: visible; }
+.hud b { display: block; font-size: 1rem; letter-spacing: .14em; color: var(--ring); text-shadow: 0 0 10px var(--glow); }
+.hud span { display: block; font-size: .72rem; color: var(--sub); letter-spacing: .06em; }
+.hud nav { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 4px; }
+.hud a { pointer-events: auto; font-size: .72rem; }
+
+/* 通知(画面中央上の細線囲み) */
+#notices { position: fixed; top: calc(12px + env(safe-area-inset-top, 0px)); left: 50%; transform: translateX(-50%); width: min(560px, calc(100% - 32px)); display: flex; flex-direction: column; gap: 8px; z-index: 30; pointer-events: none; }
+.notice { pointer-events: auto; padding: 8px 14px; font-size: .82rem; text-align: center; color: var(--ink); background: rgba(12, 32, 84, .88); border: 1px solid var(--ring); border-radius: 6px; }
+.notice.error { color: #ffc2cd; border-color: var(--hit); }
+.notice.warn { border-color: var(--glow); }
+.notice button { margin-left: 8px; }
+
+/* ログイン画面(リングの中にボタン) */
+#loginPanel { position: fixed; inset: 0; z-index: 5; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 24px; text-align: center; }
+#loginPanel p { margin: 0; max-width: 28em; color: var(--sub); font-size: .85rem; }
+#loginPanel .small { font-size: .75rem; }
+.login-ring { position: relative; width: 168px; height: 168px; margin-bottom: 22px; border-radius: 50%; border: 2px solid var(--ring); background: rgba(8, 24, 72, .9); box-shadow: 0 0 0 10px rgba(228, 248, 255, 0), 0 0 0 11px rgba(228, 248, 255, .45), 0 0 26px rgba(138, 234, 255, .45); }
+.login-ring::before { content: ""; position: absolute; inset: -22px; border-radius: 50%; border: 5px dashed var(--glow); opacity: .8; animation: spin 48s linear infinite; }
+@media (prefers-reduced-motion: reduce) { .login-ring::before { animation: none; } }
+.login-ring button { position: absolute; inset: 0; width: 100%; height: 100%; border: 0; border-radius: 50%; background: none; color: var(--ink); font: inherit; font-size: 1rem; line-height: 1.4; cursor: pointer; }
+.login-ring button:hover { background: rgba(138, 234, 255, .16); }
+
+/* ---- リング型メニュー(位置はJS。cornerはスマホ用の右下固定) ---- */
+#menu { --hx: var(--ox, 0px); --hy: var(--oy, 0px); position: fixed; width: 56px; height: 56px; z-index: 20; transform: translate(-50%, -50%) translate(var(--hx), var(--hy)); visibility: hidden; transition: transform .4s cubic-bezier(.2, .85, .25, 1), visibility .4s; }
+#menu.show { --hx: 0px; --hy: 0px; visibility: visible; }
+#menu.corner { left: auto; top: auto; right: var(--gr); bottom: var(--gb); transform: translate(var(--hx), var(--hy)); }
+#menu button, .pill { font: inherit; color: var(--ink); cursor: pointer; background: rgba(14, 40, 100, .96); border: 2px solid var(--ring); }
+#menu button { border-radius: 50%; padding: 0; }
+#menu button:hover, .pill:hover { box-shadow: 0 0 12px var(--glow); }
+#menu button:focus-visible, .pill:focus-visible, #panel button:focus-visible, .notice button:focus-visible { outline: 2px solid var(--glow); outline-offset: 2px; }
+input:focus, input:focus-visible { outline: none; }
+#mainBtn { position: absolute; left: 0; top: 0; width: 56px; height: 56px; font-size: .62rem; letter-spacing: .06em; box-shadow: 0 0 0 4px rgba(14, 40, 100, .75), 0 0 0 5px var(--glow), 0 0 16px rgba(138, 234, 255, .5); }
+.mbtn { position: absolute; left: 6px; top: 6px; width: 44px; height: 44px; font-size: .72rem; transform: translate(0, 0) scale(.5); opacity: 0; visibility: hidden; transition: transform .25s, opacity .25s, visibility .25s; box-shadow: 0 0 10px rgba(138, 234, 255, .35); }
+#menu.open .mbtn { transform: translate(var(--tx), var(--ty)); opacity: 1; visibility: visible; }
+.mbtn[aria-pressed="true"] { background: var(--glow) !important; color: #07204e !important; }
+@media (prefers-reduced-motion: reduce) { .mbtn, #menu { transition: none; } }
+
+/* MENUからの線(マップの線と同じ見た目) */
+#links { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 14; opacity: 0; transition: opacity .3s .1s; }
+#links.on { opacity: 1; }
+#links line { stroke: var(--ring); stroke-width: 1.2; }
+
+/* 子メニュー(円ボタン・検索の入力ピル) */
+#sub { position: fixed; inset: 0; pointer-events: none; z-index: 20; }
+.pill { position: absolute; pointer-events: auto; height: 40px; border-radius: 20px; padding: 0 12px; font-size: .8rem; white-space: nowrap; opacity: 0; transform: scale(.7); transition: opacity .25s, transform .25s; }
+.pill.in { opacity: 1; transform: none; }
+.pill.danger { color: var(--hit); border-color: var(--hit); }
+.pill.round { width: 60px; height: 60px; border-radius: 50%; padding: 0; white-space: pre-line; font-size: .62rem; line-height: 1.25; text-align: center; }
+.pill.armed { background: var(--hit); color: #2a0710; }
+.pill.field { display: flex; align-items: center; gap: 6px; cursor: text; }
+.pill.field i { font-style: normal; color: var(--glow); }
+.pill input { flex: 1; min-width: 0; margin: 0; height: 100%; border: 0; background: none; padding: 0 4px; color: var(--ink); font: inherit; }
+@media (prefers-reduced-motion: reduce) { .pill { transition: none; } }
+
+/* 呼び出し式パネル(通常はMENUの隣にJSが配置。cornerのときは右下) */
+#panel { position: fixed; right: var(--gr); bottom: calc(var(--gb) + 172px); width: min(400px, calc(100% - var(--gx) - var(--gr))); max-height: calc(100% - var(--gb) - 172px - 64px); overflow: auto; z-index: 15; background: var(--panel); border: 1px solid var(--edge); border-radius: 6px; backdrop-filter: blur(6px); }
+#panel header { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; border-bottom: 1px solid var(--edge); }
+#panel h2 { margin: 0; font-size: .85rem; letter-spacing: .12em; color: var(--ring); font-weight: normal; }
+#panel h2::before { content: ""; display: inline-block; width: 9px; height: 9px; margin-right: 10px; border-radius: 50%; border: 2px solid var(--ring); box-shadow: 0 0 0 2px transparent, 0 0 0 3px rgba(228, 248, 255, .4); vertical-align: -1px; }
+#panel .body { padding: 12px; display: flex; flex-direction: column; gap: 10px; }
+#panel label { display: block; font-size: .78rem; color: var(--sub); }
+#panel input { display: block; width: 100%; margin-top: 2px; font: inherit; padding: 6px 2px; color: var(--ink); background: none; border: 0; border-bottom: 1px solid var(--edge); border-radius: 0; }
+#panel input:focus { border-bottom-color: var(--ring); }
+#panel input::placeholder { color: #7f9fca; }
+#panel .gap { margin-top: 10px; }
+#panel button, .notice button { font: inherit; color: var(--ink); cursor: pointer; background: rgba(14, 40, 100, .6); border: 1.5px solid var(--ring); border-radius: 999px; padding: 6px 18px; }
+#panel button:hover, .notice button:hover { box-shadow: 0 0 10px var(--glow); background: rgba(138, 234, 255, .16); }
+#panel button.x { padding: 0 8px; border: 0; background: none; font-size: 1.1rem; box-shadow: none; }
+#panel button.danger { color: var(--hit); border-color: var(--hit); }
+#panel button.mini { padding: 3px 12px; font-size: .74rem; flex: none; }
+.sub { margin: 0; font-size: .78rem; color: var(--sub); }
+.chips { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 4px; }
+.chip { display: inline-flex; align-items: center; gap: 7px; font-size: .78rem; color: var(--ink); }
+.chip::before { content: ""; flex: none; width: 8px; height: 8px; border-radius: 50%; border: 1.5px solid var(--ring); box-shadow: 0 0 2px transparent, 0 0 0 3px rgba(228, 248, 255, .35); }
+#panel button.chip { padding: 3px 10px 3px 9px; border: 1px solid var(--edge); background: none; border-radius: 999px; }
+#panel button.chip.on { border-color: var(--ring); background: rgba(138, 234, 255, .2); }
+.item { display: flex; gap: 8px; align-items: flex-start; justify-content: space-between; padding-top: 8px; border-top: 1px solid var(--edge); }
+.item .info { flex: 1; min-width: 0; overflow-wrap: anywhere; font-size: .85rem; }
+.item .info a { color: var(--ink); text-decoration: none; }
+.item .info a:hover { color: var(--glow); }
+.item small { display: block; color: var(--sub); }
+.item .chip { font-size: .72rem; color: var(--sub); }
+.dot { flex: none; position: relative; width: 13px; height: 13px; margin-top: 5px; border-radius: 50%; border: 2px solid var(--glow); }
+.dot::after { content: ""; position: absolute; inset: 2px; border-radius: 50%; background: var(--glow); }
+
+/* ---- 説明ページ(about.html / privacy.html): 背景と見出しだけを揃え、本文は白い面で読みやすく ---- */
+body.doc { max-width: 1100px; margin: 0 auto; padding: 12px 16px 48px; font-family: Meiryo, "Yu Gothic", "Hiragino Sans", sans-serif; color: #1f2933; }
+body.doc header { display: flex; align-items: baseline; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+body.doc h1 { font-size: 1.4rem; margin: 8px 0; letter-spacing: .06em; color: var(--ring); text-shadow: 0 0 10px var(--glow); }
+body.doc .panel { background: #fff; border: 1px solid #d8dee4; border-radius: 8px; padding: 12px; margin: 12px 0; }
+body.doc .panel a { color: #2b6cb0; }

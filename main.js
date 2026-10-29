@@ -6,7 +6,7 @@ const SCOPE = 'https://www.googleapis.com/auth/drive.appdata';
 const FILE_NAME = 'url_label_map.json';
 const LOCAL_KEY = 'url_label_map_local_trial';
 const LIMIT = { url: 2000, label: 50, labelsPerUrl: 10, title: 200 };
-const FONT = 'Meiryo, "Yu Gothic", "Hiragino Sans", sans-serif';
+const FONT = 'Consolas, "BIZ UDGothic", "Yu Gothic", Meiryo, monospace';
 const SVG_NS = 'http://www.w3.org/2000/svg';
 
 const state = {
@@ -28,10 +28,15 @@ class AuthError extends Error {}
 
 // ---------- 表示ユーティリティ ----------
 
+// 通知(画面中央上)。「…」で終わる読み込み中の表示は、次の表示で置き換わるまで残す。
+let noticeTimer = null;
 function setStatus(msg, isError = false) {
   const s = $('status');
+  clearTimeout(noticeTimer);
   s.textContent = msg;
-  s.className = isError ? 'error' : '';
+  s.hidden = !msg;
+  s.className = 'notice' + (isError ? ' error' : '');
+  if (msg && !/…$/.test(msg)) noticeTimer = setTimeout(() => setStatus(''), isError ? 9000 : 4500);
 }
 
 function svgEl(name, attrs = {}, text) {
@@ -272,19 +277,18 @@ $('reauthBtn').addEventListener('click', async () => {
   try { await requestToken(''); await persist(); } catch (e) { setStatus(e.message, true); }
 });
 
-$('logoutBtn').addEventListener('click', async () => {
-  if (state.dirty && !confirm('未保存の変更があります。ログアウトしますか?')) return;
+async function logout() {
   if (!state.local && state.token && window.google) google.accounts.oauth2.revoke(state.token, () => {});
   clearSession();
-  Object.assign(state, { token: null, tokenExpiresAt: 0, fileId: null, dirty: false, data: { version: 1, urls: [] }, expanded: new Set() });
+  Object.assign(state, { token: null, tokenExpiresAt: 0, fileId: null, dirty: false, data: { version: 1, urls: [] }, expanded: new Set(), query: '' });
+  closeAll();
   $('app').hidden = true;
   $('reauth').hidden = true;
   if (state.local) await start(); else $('loginPanel').hidden = false;
   setStatus(state.local ? '' : 'ログアウトしました');
-});
+}
 
-$('deleteAllBtn').addEventListener('click', async () => {
-  if (!confirm('登録したURLとラベルをすべて削除します(Google Drive上のデータファイルも削除されます)。元に戻せません。よろしいですか?')) return;
+async function deleteAll() {
   try {
     await saveChain;
     await store.remove();
@@ -297,7 +301,7 @@ $('deleteAllBtn').addEventListener('click', async () => {
     if (e instanceof AuthError) $('reauth').hidden = false;
     else setStatus(e.message, true);
   }
-});
+}
 
 // ---------- タイトル取得(ブラウザから直接fetch。失敗したらURL表示のまま) ----------
 
@@ -357,6 +361,10 @@ function deleteUrl(entry) {
 
 // ---------- マインドマップのレイアウト ----------
 
+function userRadius() {
+  return Math.min(80, Math.max(40, textWidth(truncate(state.userName, 10), 15) / 2 + 16));
+}
+
 function layout(data, expanded) {
   const byLabel = new Map();
   for (const e of data.urls) {
@@ -367,7 +375,7 @@ function layout(data, expanded) {
   }
   const names = [...byLabel.keys()].sort((a, b) => a.localeCompare(b, 'ja'));
   const n = names.length;
-  const R = Math.max(180, (n * 130) / (2 * Math.PI));
+  const R = Math.max(190, (n * 150) / (2 * Math.PI));
   const labels = new Map();
   names.forEach((name, i) => {
     const a = -Math.PI / 2 + (2 * Math.PI * i) / n;
@@ -384,29 +392,29 @@ function layout(data, expanded) {
     const k = mine.length;
     if (!k) continue;
     const base = labels.get(name).angle;
-    const r = Math.max(R + 200, (26 * k) / span);
+    const r = Math.max(R + 210, (28 * k) / span);
     mine.forEach((e, j) => {
       const a = k === 1 ? base : base + (j - (k - 1) / 2) * (span / k);
       urls.push({ entry: e, angle: a, x: r * Math.cos(a), y: r * Math.sin(a) });
     });
   }
 
-  const cw = Math.max(80, textWidth(truncate(state.userName, 12), 15) + 28);
-  let minX = -cw / 2, maxX = cw / 2, minY = -26, maxY = 26;
+  const ur = userRadius() + 18;
+  let minX = -ur, maxX = ur, minY = -ur, maxY = ur;
   const grow = (x0, x1, y0, y1) => {
     minX = Math.min(minX, x0); maxX = Math.max(maxX, x1);
     minY = Math.min(minY, y0); maxY = Math.max(maxY, y1);
   };
   for (const l of labels.values()) {
-    const w = textWidth(`${l.name} (${l.count})`) + 24;
-    grow(l.x - w / 2, l.x + w / 2, l.y - 15, l.y + 15);
+    const w = textWidth(`${l.name} (${l.count})`, 16) + 12;
+    grow(Math.min(l.x - w / 2, l.x - 30), Math.max(l.x + w / 2, l.x + 30), l.y - 32, l.y + 58);
   }
   for (const u of urls) {
-    const w = textWidth(urlText(u.entry)) + 14;
+    const w = textWidth(urlText(u.entry), 15) + 24;
     const right = Math.cos(u.angle) >= 0;
-    grow(right ? u.x - 6 : u.x - w, right ? u.x + w : u.x + 6, u.y - 10, u.y + 10);
+    grow(right ? u.x - 12 : u.x - w, right ? u.x + w : u.x + 12, u.y - 14, u.y + 14);
   }
-  return { labels, urls, cw, bounds: { minX: minX - 30, minY: minY - 30, maxX: maxX + 30, maxY: maxY + 30 } };
+  return { labels, urls, ur: userRadius(), bounds: { minX: minX - 30, minY: minY - 30, maxX: maxX + 30, maxY: maxY + 30 } };
 }
 
 function urlText(entry) {
@@ -417,21 +425,40 @@ function urlText(entry) {
 
 const drag = { moved: false };
 
+// 同心円のリング(外側の細い輪、本体、展開中は破線の外輪、中心の点)
+function ringNode(parent, x, y, r, color, { open = false, hit = false, spin = true } = {}) {
+  parent.appendChild(svgEl('circle', { cx: x, cy: y, r: r + 7, fill: 'none', stroke: color, 'stroke-width': 1, 'stroke-opacity': 0.55 }));
+  parent.appendChild(svgEl('circle', { cx: x, cy: y, r, fill: 'rgba(8,24,72,0.88)', stroke: color, 'stroke-width': open || hit ? 4 : 2.5 }));
+  if (open) {
+    const dash = svgEl('circle', { cx: x, cy: y, r: r + 13, fill: 'none', stroke: color, 'stroke-width': 2, 'stroke-dasharray': '18 10', 'stroke-opacity': 0.85 });
+    if (spin) dash.setAttribute('class', 'spin');
+    parent.appendChild(dash);
+  }
+  parent.appendChild(svgEl('circle', { cx: x, cy: y, r: 3.5, fill: color }));
+}
+
 function renderMap(target, expanded, { forExport = false } = {}) {
   target.replaceChildren();
   const L = layout(state.data, expanded);
   const q = state.query.trim().toLowerCase();
   const matches = (name) => q && name.toLowerCase().includes(q);
+  const textStroke = { 'paint-order': 'stroke', stroke: '#0f2a64', 'stroke-width': 4 };
 
   if (forExport) {
     const b = L.bounds;
-    target.appendChild(svgEl('rect', { x: b.minX, y: b.minY, width: b.maxX - b.minX, height: b.maxY - b.minY, fill: '#ffffff' }));
+    const defs = svgEl('defs');
+    const grad = svgEl('radialGradient', { id: 'bgGrad', cx: '50%', cy: '45%', r: '75%' });
+    grad.appendChild(svgEl('stop', { offset: '0%', 'stop-color': '#2a62c4' }));
+    grad.appendChild(svgEl('stop', { offset: '100%', 'stop-color': '#0d2554' }));
+    defs.appendChild(grad);
+    target.appendChild(defs);
+    target.appendChild(svgEl('rect', { x: b.minX, y: b.minY, width: b.maxX - b.minX, height: b.maxY - b.minY, fill: 'url(#bgGrad)' }));
   }
-  const g = svgEl('g', { 'font-family': FONT, 'font-size': 13 });
+  const g = svgEl('g', { 'font-family': FONT, 'font-size': 16 });
   target.appendChild(g);
 
   // 線(ユーザー→ラベル、ラベル→URL。ラベル同士は結ばない)
-  const edges = svgEl('g', { stroke: '#9aa5b1', 'stroke-width': 1.3, fill: 'none' });
+  const edges = svgEl('g', { stroke: '#e4f8ff', 'stroke-opacity': 0.55, 'stroke-width': 1.2, fill: 'none' });
   g.appendChild(edges);
   for (const l of L.labels.values()) edges.appendChild(svgEl('line', { x1: 0, y1: 0, x2: l.x, y2: l.y }));
   for (const u of L.urls) {
@@ -441,28 +468,30 @@ function renderMap(target, expanded, { forExport = false } = {}) {
     }
   }
 
-  // ユーザー
-  g.appendChild(svgEl('ellipse', { cx: 0, cy: 0, rx: L.cw / 2, ry: 24, fill: '#2b6cb0' }));
-  g.appendChild(svgEl('text', { x: 0, y: 5, 'text-anchor': 'middle', fill: '#fff', 'font-size': 15, 'font-weight': 'bold' }, truncate(state.userName, 12)));
+  // ユーザー(中心の三重リング)
+  const ur = L.ur;
+  const user = svgEl('g');
+  user.appendChild(svgEl('circle', { cx: 0, cy: 0, r: ur + 18, fill: 'none', stroke: '#e4f8ff', 'stroke-width': 1, 'stroke-opacity': 0.5 }));
+  const arc = svgEl('circle', { cx: 0, cy: 0, r: ur + 10, fill: 'none', stroke: '#8aeaff', 'stroke-width': 6, 'stroke-dasharray': `${(ur + 10) * 1.6} ${(ur + 10) * 0.35}`, 'stroke-opacity': 0.9 });
+  if (!forExport) arc.setAttribute('class', 'spin');
+  user.appendChild(arc);
+  user.appendChild(svgEl('circle', { cx: 0, cy: 0, r: ur, fill: 'rgba(8,24,72,0.92)', stroke: '#e4f8ff', 'stroke-width': 2.5 }));
+  user.appendChild(svgEl('text', { x: 0, y: 5, 'text-anchor': 'middle', fill: '#eaf6ff', 'font-size': 15, 'font-weight': 'bold' }, truncate(state.userName, 10)));
+  g.appendChild(user);
 
   // ラベル
   for (const l of L.labels.values()) {
     const open = expanded.has(l.name);
     const hit = matches(l.name);
-    const text = `${l.name} (${l.count})`;
-    const w = textWidth(text) + 24;
-    const node = svgEl('g', { opacity: q && !hit ? 0.3 : 1 });
-    node.appendChild(svgEl('rect', {
-      x: l.x - w / 2, y: l.y - 15, width: w, height: 30, rx: 15,
-      fill: hit ? '#fff3bf' : open ? '#2f855a' : '#e6f4ea',
-      stroke: hit ? '#f59e0b' : '#2f855a',
-      'stroke-width': hit ? 4 : 1.5,
-    }));
-    node.appendChild(svgEl('text', { x: l.x, y: l.y + 4.5, 'text-anchor': 'middle', fill: open && !hit ? '#fff' : '#1f2933' }, text));
+    const color = hit ? '#ff6b86' : '#e4f8ff';
+    const node = svgEl('g', { opacity: q && !hit ? 0.35 : 1 });
+    ringNode(node, l.x, l.y, 15, color, { open, hit, spin: !forExport });
+    node.appendChild(svgEl('text', { x: l.x, y: l.y + 46, 'text-anchor': 'middle', fill: hit ? '#ffa3b4' : '#eaf6ff', ...textStroke }, `${l.name} (${l.count})`));
     if (!forExport) {
-      node.setAttribute('style', 'cursor:pointer');
+      node.setAttribute('class', 'node');
       node.setAttribute('role', 'button');
       node.setAttribute('tabindex', '0');
+      node.setAttribute('aria-label', `ラベル ${l.name}${open ? '(展開中)' : ''}`);
       const toggle = () => {
         if (drag.moved) return;
         if (state.expanded.has(l.name)) state.expanded.delete(l.name); else state.expanded.add(l.name);
@@ -474,204 +503,562 @@ function renderMap(target, expanded, { forExport = false } = {}) {
     g.appendChild(node);
   }
 
-  // URL
+  // URL(文字だけ。下線なし)
   for (const u of L.urls) {
     const right = Math.cos(u.angle) >= 0;
     const dim = q && !u.entry.labels.some(matches);
-    const a = svgEl('a', { href: u.entry.url, target: '_blank', rel: 'noopener noreferrer', opacity: dim ? 0.3 : 1 });
+    const a = svgEl('a', { href: u.entry.url, target: '_blank', rel: 'noopener noreferrer', opacity: dim ? 0.35 : 1 });
     a.appendChild(svgEl('title', {}, `${u.entry.title ? u.entry.title + '\n' : ''}${u.entry.url}`));
-    a.appendChild(svgEl('circle', { cx: u.x, cy: u.y, r: 4.5, fill: '#2b6cb0' }));
+    a.appendChild(svgEl('circle', { cx: u.x, cy: u.y, r: 9, fill: 'none', stroke: '#8aeaff', 'stroke-width': 1, 'stroke-opacity': 0.6 }));
+    a.appendChild(svgEl('circle', { cx: u.x, cy: u.y, r: 4.5, fill: '#8aeaff' }));
     a.appendChild(svgEl('text', {
-      x: u.x + (right ? 9 : -9), y: u.y + 4.5, 'text-anchor': right ? 'start' : 'end',
-      fill: '#2b6cb0', 'text-decoration': 'underline',
+      x: u.x + (right ? 15 : -15), y: u.y + 5, 'text-anchor': right ? 'start' : 'end',
+      fill: '#a8f2ff', 'font-size': 15, ...textStroke,
     }, urlText(u.entry)));
+    if (!forExport) a.addEventListener('click', (ev) => { if (drag.moved) ev.preventDefault(); });
     g.appendChild(a);
   }
   return L.bounds;
 }
 
 // ---------- 表示範囲(パン・ズーム) ----------
+// view は「画面の中心にあるマップ上の座標(cx, cy)」と「拡大率 k(1マップ単位あたりのピクセル数)」。
 
 let view = null;
+let lastBounds = { minX: -200, minY: -200, maxX: 200, maxY: 200 };
+
+// 背景(bg.js)が視差をつけるために使う
+window.urlMapView = () => view;
 
 function applyView() {
-  svg.setAttribute('viewBox', `${view.x} ${view.y} ${view.w} ${view.h}`);
+  const w = window.innerWidth / view.k;
+  const h = window.innerHeight / view.k;
+  svg.setAttribute('viewBox', `${view.cx - w / 2} ${view.cy - h / 2} ${w} ${h}`);
+  window.dispatchEvent(new Event('urlmap:view'));
 }
 
 function fitView() {
   const b = lastBounds;
-  view = { x: b.minX, y: b.minY, w: b.maxX - b.minX, h: b.maxY - b.minY };
+  const bw = Math.max(1, b.maxX - b.minX);
+  const bh = Math.max(1, b.maxY - b.minY);
+  view = {
+    cx: (b.minX + b.maxX) / 2,
+    cy: (b.minY + b.maxY) / 2,
+    k: Math.min(1.5, Math.max(0.15, Math.min(window.innerWidth / bw, window.innerHeight / bh) * 0.92)),
+  };
   applyView();
 }
 
-let lastBounds = { minX: -200, minY: -200, maxX: 200, maxY: 200 };
+// 画面上の点(sx, sy)を動かさずに拡大縮小する
+function zoomAt(sx, sy, f) {
+  if (!view) return;
+  const k = Math.min(4, Math.max(0.08, view.k * f));
+  const dx = sx - window.innerWidth / 2;
+  const dy = sy - window.innerHeight / 2;
+  view = { cx: view.cx + dx / view.k - dx / k, cy: view.cy + dy / view.k - dy / k, k };
+  applyView();
+}
+
+function labelNames() {
+  const set = new Set();
+  state.data.urls.forEach((e) => e.labels.forEach((l) => set.add(l)));
+  return [...set];
+}
 
 function renderAll(refit) {
   lastBounds = renderMap(svg, state.expanded);
   if (refit || !view) fitView();
   $('emptyMsg').hidden = state.data.urls.length > 0;
-  $('count').textContent = state.data.urls.length;
-  renderList();
+  $('stat').textContent = `NODES ${state.data.urls.length} / LABELS ${labelNames().length}`;
+  if (activeKey === 'list') renderList();
+  if (activeKey === 'add') renderSugg();
+  if (menu.classList.contains('open')) { placePanel(); drawLinks(); }
   updateSearchStatus();
-}
-
-// ---------- ラベル入力のプルダウン(登録済みラベルから選ぶ) ----------
-
-const labelInput = $('labelInput');
-const labelMenu = $('labelMenu');
-let menuItems = [];
-let menuIdx = -1;
-
-function allLabels() {
-  const set = new Set();
-  state.data.urls.forEach((e) => e.labels.forEach((l) => set.add(l)));
-  return [...set].sort((a, b) => a.localeCompare(b, 'ja'));
-}
-
-// 入力欄のうち、いま打っている最後のラベルとそれより前の部分に分ける
-function splitInput() {
-  const v = labelInput.value;
-  const m = v.match(/^([\s\S]*[,、，\s])([^,、，\s]*)$/);
-  return m ? { head: m[1], part: m[2] } : { head: '', part: v };
-}
-
-function closeMenu() {
-  labelMenu.hidden = true;
-  labelInput.setAttribute('aria-expanded', 'false');
-  menuIdx = -1;
-}
-
-function openMenu(showAll) {
-  const { head, part } = splitInput();
-  const used = new Set(parseLabels(head));
-  const q = showAll ? '' : part.trim().toLowerCase();
-  menuItems = allLabels().filter((l) => !used.has(l) && l.toLowerCase().includes(q));
-  menuIdx = -1;
-  if (!menuItems.length) { closeMenu(); return; }
-  labelMenu.replaceChildren(...menuItems.map((l, i) => {
-    const li = document.createElement('li');
-    li.setAttribute('role', 'option');
-    li.textContent = l;
-    li.addEventListener('mousedown', (ev) => { ev.preventDefault(); pickLabel(l); });
-    li.addEventListener('mouseenter', () => highlightItem(i));
-    return li;
-  }));
-  labelMenu.hidden = false;
-  labelInput.setAttribute('aria-expanded', 'true');
-}
-
-function highlightItem(i) {
-  menuIdx = i;
-  [...labelMenu.children].forEach((li, k) => {
-    li.classList.toggle('active', k === i);
-    if (k === i) li.scrollIntoView({ block: 'nearest' });
-  });
-}
-
-function pickLabel(l) {
-  labelInput.value = splitInput().head + l + ', ';
-  labelInput.focus();
-  openMenu(false);
-}
-
-labelInput.addEventListener('focus', () => openMenu(false));
-labelInput.addEventListener('input', () => openMenu(false));
-labelInput.addEventListener('blur', closeMenu);
-labelInput.addEventListener('keydown', (ev) => {
-  if (labelMenu.hidden) {
-    if (ev.key === 'ArrowDown') { ev.preventDefault(); openMenu(true); }
-    return;
-  }
-  if (ev.key === 'ArrowDown') { ev.preventDefault(); highlightItem((menuIdx + 1) % menuItems.length); }
-  else if (ev.key === 'ArrowUp') { ev.preventDefault(); highlightItem((menuIdx - 1 + menuItems.length) % menuItems.length); }
-  else if (ev.key === 'Enter' && menuIdx >= 0) { ev.preventDefault(); pickLabel(menuItems[menuIdx]); }
-  else if (ev.key === 'Escape') closeMenu();
-});
-$('labelToggle').addEventListener('mousedown', (ev) => {
-  ev.preventDefault();
-  if (labelMenu.hidden) { labelInput.focus(); openMenu(true); } else closeMenu();
-});
-
-function renderList() {
-  const ul = $('list');
-  ul.replaceChildren();
-  for (const e of state.data.urls) {
-    const li = document.createElement('li');
-    const item = document.createElement('div');
-    item.className = 'item';
-    const a = document.createElement('a');
-    a.href = e.url;
-    a.target = '_blank';
-    a.rel = 'noopener noreferrer';
-    a.textContent = e.title || e.url;
-    const chips = document.createElement('div');
-    chips.className = 'chips';
-    chips.textContent = e.labels.join(' / ');
-    item.append(a, chips);
-    const del = document.createElement('button');
-    del.type = 'button';
-    del.textContent = '削除';
-    del.addEventListener('click', () => deleteUrl(e));
-    li.append(item, del);
-    ul.appendChild(li);
-  }
 }
 
 function updateSearchStatus() {
   const q = state.query.trim().toLowerCase();
   if (!q) return;
-  const names = new Set();
-  state.data.urls.forEach((e) => e.labels.forEach((l) => names.add(l)));
-  const hits = [...names].filter((l) => l.toLowerCase().includes(q)).length;
+  const hits = labelNames().filter((l) => l.toLowerCase().includes(q)).length;
   setStatus(hits ? `${hits}件のラベルがヒットしました` : '一致するラベルはありません');
 }
 
+const ptrs = new Map();
+let lastDist = 0;
 svg.addEventListener('wheel', (ev) => {
   ev.preventDefault();
-  const ctm = svg.getScreenCTM();
-  if (!ctm) return;
-  const p = new DOMPoint(ev.clientX, ev.clientY).matrixTransform(ctm.inverse());
-  const f = ev.deltaY < 0 ? 0.85 : 1 / 0.85;
-  view = { x: p.x - (p.x - view.x) * f, y: p.y - (p.y - view.y) * f, w: view.w * f, h: view.h * f };
-  applyView();
+  zoomAt(ev.clientX, ev.clientY, Math.exp(-ev.deltaY * 0.0015));
 }, { passive: false });
-
-let panStart = null;
 svg.addEventListener('pointerdown', (ev) => {
-  panStart = { cx: ev.clientX, cy: ev.clientY, view: { ...view }, ctm: svg.getScreenCTM() };
+  ptrs.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
   drag.moved = false;
+  lastDist = 0;
+  svg.classList.add('drag');
 });
 window.addEventListener('pointermove', (ev) => {
-  if (!panStart || !panStart.ctm) return;
-  const dx = ev.clientX - panStart.cx;
-  const dy = ev.clientY - panStart.cy;
-  if (!drag.moved && Math.hypot(dx, dy) < 5) return;
-  drag.moved = true;
-  const k = 1 / panStart.ctm.a;
-  view = { ...panStart.view, x: panStart.view.x - dx * k, y: panStart.view.y - dy * k };
-  applyView();
+  const p = ptrs.get(ev.pointerId);
+  if (!p || !view) return;
+  if (ptrs.size === 2) {
+    ptrs.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
+    const [a, b] = [...ptrs.values()];
+    const d = Math.hypot(a.x - b.x, a.y - b.y);
+    if (lastDist) zoomAt((a.x + b.x) / 2, (a.y + b.y) / 2, d / lastDist);
+    lastDist = d;
+    drag.moved = true;
+    return;
+  }
+  const dx = ev.clientX - p.x;
+  const dy = ev.clientY - p.y;
+  if (drag.moved || Math.hypot(dx, dy) > 4) {
+    drag.moved = true;
+    view = { ...view, cx: view.cx - dx / view.k, cy: view.cy - dy / view.k };
+    applyView();
+    ptrs.set(ev.pointerId, { x: ev.clientX, y: ev.clientY });
+  }
 });
-window.addEventListener('pointerup', () => {
-  panStart = null;
-  setTimeout(() => { drag.moved = false; }, 0);
+function endPointer(ev) {
+  ptrs.delete(ev.pointerId);
+  lastDist = 0;
+  if (!ptrs.size) {
+    svg.classList.remove('drag');
+    setTimeout(() => { drag.moved = false; }, 0);
+  }
+}
+window.addEventListener('pointerup', endPointer);
+window.addEventListener('pointercancel', endPointer);
+window.addEventListener('resize', () => {
+  if (view) applyView();
+  if (menu.classList.contains('open')) { layoutSub(); placePanel(); drawLinks(); }
 });
 
-// ---------- 操作ボタン ----------
+// ---------- 呼び出し式のメニュー(スマホ=右下固定 / PC=画面端にカーソルを寄せると画面外から入ってくる) ----------
 
-$('searchInput').addEventListener('input', (ev) => {
-  state.query = ev.target.value;
-  if (!state.query.trim()) setStatus('');
-  renderAll(false);
+const menu = $('menu');
+const panel = $('panel');
+const dim = $('dim');
+const linksSvg = $('links');
+const subBox = $('sub');
+const desktop = !!(window.matchMedia && matchMedia('(hover: hover) and (pointer: fine)').matches);
+const KIDS = ['add', 'search', 'list', 'data', 'fit'];
+const FANS = {
+  corner: [180, 202.5, 225, 247.5, 270],
+  bottom: [190, 230, 270, 310, 350],
+  top: [10, 50, 90, 130, 170],
+  left: [-80, -40, 0, 40, 80],
+  right: [100, 140, 180, 220, 260],
+};
+const HIDE = { corner: [0, 90], bottom: [0, 90], top: [0, -90], left: [-90, 0], right: [90, 0] };
+const TITLES = { add: '登録', list: '一覧' };
+
+let activeKey = null;
+let anchor = { edge: 'corner', x: 0, y: 0 };
+let offs = [];
+let subPos = [];
+
+const clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+const rad = (d) => (d * Math.PI) / 180;
+
+function menuCenter() {
+  return anchor.edge === 'corner' ? { x: menu.offsetLeft + 28, y: menu.offsetTop + 28 } : { x: anchor.x, y: anchor.y };
+}
+
+function placeMenu(a) {
+  anchor = a;
+  menu.classList.toggle('corner', a.edge === 'corner');
+  if (a.edge === 'corner') { menu.style.left = ''; menu.style.top = ''; } else { menu.style.left = a.x + 'px'; menu.style.top = a.y + 'px'; }
+  menu.style.setProperty('--ox', HIDE[a.edge][0] + 'px');
+  menu.style.setProperty('--oy', HIDE[a.edge][1] + 'px');
+  const r = a.edge === 'corner' ? 96 : 100;
+  const angs = FANS[a.edge];
+  offs = [];
+  menu.querySelectorAll('.mbtn').forEach((b, i) => {
+    const x = r * Math.cos(rad(angs[i]));
+    const y = r * Math.sin(rad(angs[i]));
+    offs.push({ x, y });
+    b.style.setProperty('--tx', x.toFixed(1) + 'px');
+    b.style.setProperty('--ty', y.toFixed(1) + 'px');
+  });
+}
+
+function placePanel() {
+  panel.style.left = panel.style.top = panel.style.right = panel.style.bottom = panel.style.maxHeight = '';
+  if (anchor.edge === 'corner' || panel.hidden) return;
+  panel.style.maxHeight = (window.innerHeight - 90) + 'px';
+  const w = panel.offsetWidth;
+  const h = panel.offsetHeight;
+  const o = 134;
+  let x;
+  let y;
+  if (anchor.edge === 'bottom') { x = anchor.x - w / 2; y = anchor.y - o - h; }
+  else if (anchor.edge === 'top') { x = anchor.x - w / 2; y = anchor.y + o; }
+  else if (anchor.edge === 'left') { x = anchor.x + o; y = anchor.y - h / 2; }
+  else { x = anchor.x - o - w; y = anchor.y - h / 2; }
+  panel.style.left = clamp(x, 16, Math.max(16, window.innerWidth - w - 16)) + 'px';
+  panel.style.top = clamp(y, 56, Math.max(56, window.innerHeight - h - 16)) + 'px';
+  panel.style.right = 'auto';
+  panel.style.bottom = 'auto';
+}
+
+// MENU→子→(パネル/子メニュー)を、マップと同じ見た目の線でつなぐ
+function drawLinks() {
+  linksSvg.replaceChildren();
+  if (!menu.classList.contains('open')) { linksSvg.classList.remove('on'); return; }
+  const M = menuCenter();
+  offs.forEach((o, i) => {
+    linksSvg.appendChild(svgEl('line', { x1: M.x, y1: M.y, x2: M.x + o.x, y2: M.y + o.y, 'stroke-opacity': KIDS[i] === activeKey ? 0.9 : 0.5 }));
+  });
+  const i = KIDS.indexOf(activeKey);
+  if (i >= 0) {
+    const P = { x: M.x + offs[i].x, y: M.y + offs[i].y };
+    if (!panel.hidden) {
+      const r = panel.getBoundingClientRect();
+      const nx = clamp(P.x, r.left, r.right);
+      const ny = clamp(P.y, r.top, r.bottom);
+      linksSvg.appendChild(svgEl('line', { x1: P.x, y1: P.y, x2: nx, y2: ny, 'stroke-opacity': 0.9 }));
+      linksSvg.appendChild(svgEl('circle', { cx: nx, cy: ny, r: 3, fill: '#e4f8ff' }));
+    }
+    for (const s of subPos) linksSvg.appendChild(svgEl('line', { x1: P.x, y1: P.y, x2: s.x, y2: s.y, 'stroke-opacity': 0.9 }));
+  }
+  linksSvg.classList.add('on');
+}
+
+// ----- 子メニュー(保存・全体=円ボタンの円弧、検索=入力欄) -----
+
+function subItems(key) {
+  if (key === 'data') {
+    return [
+      { text: 'JSON\n保存', act: 'json' },
+      { text: '画像\nPNG', act: 'png' },
+      { text: 'ログ\nアウト', act: 'logout', confirmText: 'もう一度\n押す', needConfirm: () => state.dirty },
+      { text: '全データ\n削除', act: 'wipe', danger: true, confirmText: '本当に\n削除', needConfirm: () => true },
+    ];
+  }
+  if (key === 'fit') {
+    return [
+      { text: '全体\n表示', act: 'fit' },
+      { text: 'すべて\n開く', act: 'openAll' },
+      { text: 'すべて\n閉じる', act: 'closeAll' },
+    ];
+  }
+  if (key === 'search') return [{ field: true }];
+  return null;
+}
+
+async function runAction(act) {
+  if (act === 'json') exportJson();
+  else if (act === 'png') await exportPng();
+  else if (act === 'logout') await logout();
+  else if (act === 'wipe') { await deleteAll(); setMenu(false); }
+  else if (act === 'fit') fitView();
+  else if (act === 'openAll') { state.data.urls.forEach((e) => e.labels.forEach((l) => state.expanded.add(l))); renderAll(true); }
+  else if (act === 'closeAll') { state.expanded.clear(); renderAll(true); }
+}
+
+function makePill(s) {
+  if (s.field) {
+    const n = document.createElement('label');
+    n.className = 'pill field';
+    n.style.width = Math.min(240, window.innerWidth - 32) + 'px';
+    const mark = document.createElement('i');
+    mark.textContent = '>';
+    const inp = document.createElement('input');
+    inp.type = 'search';
+    inp.placeholder = 'ラベルを検索';
+    inp.autocomplete = 'off';
+    inp.setAttribute('aria-label', 'ラベル検索');
+    inp.value = state.query;
+    inp.addEventListener('input', (ev) => {
+      state.query = ev.target.value;
+      if (!state.query.trim()) setStatus('');
+      renderAll(false);
+    });
+    n.append(mark, inp);
+    return n;
+  }
+  const b = document.createElement('button');
+  b.type = 'button';
+  b.className = 'pill round' + (s.danger ? ' danger' : '');
+  b.textContent = s.text;
+  b.setAttribute('aria-label', s.text.replace('\n', ''));
+  let armed = false;
+  let timer = null;
+  b.addEventListener('click', () => {
+    if (s.needConfirm && s.needConfirm() && !armed) {
+      armed = true;
+      b.textContent = s.confirmText;
+      b.classList.add('armed');
+      timer = setTimeout(() => { armed = false; b.textContent = s.text; b.classList.remove('armed'); }, 4000);
+      return;
+    }
+    clearTimeout(timer);
+    armed = false;
+    b.textContent = s.text;
+    b.classList.remove('armed');
+    runAction(s.act);
+  });
+  return b;
+}
+
+// 子ボタンの周りに、MENUと反対向きの円弧で並べる。画面からはみ出すときは扇の向きを少しずらす
+function layoutSub() {
+  subPos = [];
+  const items = [...subBox.children];
+  const i = KIDS.indexOf(activeKey);
+  if (i < 0 || !items.length) return;
+  const M = menuCenter();
+  const P = { x: M.x + offs[i].x, y: M.y + offs[i].y };
+  const base = Math.atan2(offs[i].y, offs[i].x);
+  const n = items.length;
+  const step = n > 1 ? rad(40) : 0;
+  const R = 100;
+  const W = window.innerWidth;
+  const H = window.innerHeight;
+  const pts = (b) => items.map((it, j) => {
+    const w = it.offsetWidth;
+    const h = it.offsetHeight;
+    const a = b + (j - (n - 1) / 2) * step;
+    const dx = Math.cos(a);
+    const dy = Math.sin(a);
+    const d = n > 1 ? R : 40 + (w / 2) * Math.abs(dx) + (h / 2) * Math.abs(dy);
+    return { x: P.x + dx * d, y: P.y + dy * d, w, h };
+  });
+  const inside = (p) => p.x >= p.w / 2 + 8 && p.x <= W - p.w / 2 - 8 && p.y >= p.h / 2 + 8 && p.y <= H - p.h / 2 - 8;
+  let best = null;
+  for (const t of [0, 10, -10, 20, -20, 30, -30, 45, -45, 60, -60, 80, -80]) {
+    const c = pts(base + rad(t));
+    if (c.every(inside)) { best = c; break; }
+  }
+  best = best || pts(base);
+  best.forEach((p, j) => {
+    const cx = clamp(p.x, p.w / 2 + 8, W - p.w / 2 - 8);
+    const cy = clamp(p.y, p.h / 2 + 8, H - p.h / 2 - 8);
+    items[j].style.left = (cx - p.w / 2) + 'px';
+    items[j].style.top = (cy - p.h / 2) + 'px';
+    subPos.push({ x: cx, y: cy });
+  });
+}
+
+function renderSub(key) {
+  subBox.replaceChildren();
+  subPos = [];
+  const list = subItems(key);
+  if (!list) return;
+  list.forEach((s) => subBox.appendChild(makePill(s)));
+  layoutSub();
+  requestAnimationFrame(() => [...subBox.children].forEach((n, j) => setTimeout(() => n.classList.add('in'), j * 50)));
+  const f = subBox.querySelector('input');
+  if (f) setTimeout(() => f.focus(), 80);
+}
+
+// ----- パネル(登録・一覧) -----
+
+function showPanel(name) {
+  panel.hidden = !name;
+  $('addForm').hidden = name !== 'add';
+  $('listBox').hidden = name !== 'list';
+  if (!name) return;
+  $('ptitle').textContent = TITLES[name];
+  if (name === 'list') renderList();
+  if (name === 'add') { renderSugg(); setTimeout(() => $('urlInput').focus(), 0); }
+  placePanel();
+}
+
+function setActive(key) {
+  activeKey = activeKey === key ? null : key;
+  showPanel(activeKey === 'add' || activeKey === 'list' ? activeKey : null);
+  renderSub(activeKey);
+  menu.querySelectorAll('.mbtn').forEach((b) => b.setAttribute('aria-pressed', b.dataset.k === activeKey));
+  drawLinks();
+}
+
+function setMenu(open) {
+  menu.classList.toggle('open', open);
+  dim.classList.toggle('on', open);
+  $('hud').classList.toggle('on', open);
+  $('mainBtn').setAttribute('aria-expanded', open);
+  $('mainBtn').textContent = open ? 'CLOSE' : 'MENU';
+  if (open) {
+    requestAnimationFrame(drawLinks);
+  } else {
+    activeKey = null;
+    showPanel(null);
+    renderSub(null);
+    menu.querySelectorAll('.mbtn').forEach((b) => b.setAttribute('aria-pressed', 'false'));
+    drawLinks();
+    if (desktop) menu.classList.remove('show');
+  }
+}
+
+function closeAll() { setMenu(false); }
+
+$('mainBtn').addEventListener('click', () => setMenu(!menu.classList.contains('open')));
+$('pclose').addEventListener('click', () => setActive(activeKey));
+menu.querySelectorAll('.mbtn').forEach((b) => b.addEventListener('click', () => setActive(b.dataset.k)));
+
+// メニュー・子メニュー・パネル以外を押したら閉じる(マップ操作はそのまま続けられる)
+window.addEventListener('pointerdown', (ev) => {
+  if (menu.classList.contains('open') && !menu.contains(ev.target) && !panel.contains(ev.target) && !subBox.contains(ev.target)) setMenu(false);
+}, true);
+
+function showMenuAt(a) {
+  menu.style.transition = 'none';
+  placeMenu(a);
+  void menu.offsetWidth;
+  menu.style.transition = '';
+  menu.classList.add('show');
+}
+
+window.addEventListener('keydown', (ev) => {
+  if ($('app').hidden) return;
+  if (ev.key === 'Escape') { if (activeKey) setActive(activeKey); else setMenu(false); return; }
+  const typing = document.activeElement && document.activeElement.tagName === 'INPUT';
+  if (!typing && (ev.key === '/' || ev.key === 'm')) {
+    ev.preventDefault();
+    if (!menu.classList.contains('show')) showMenuAt({ edge: 'corner', x: 0, y: 0 });
+    if (!menu.classList.contains('open')) setMenu(true);
+    if (ev.key === '/' && activeKey !== 'search') setActive('search');
+  }
 });
-$('fitBtn').addEventListener('click', () => fitView());
-$('expandAllBtn').addEventListener('click', () => {
-  state.data.urls.forEach((e) => e.labels.forEach((l) => state.expanded.add(l)));
-  renderAll(true);
+
+// PC: 画面端への接近を検知し、その辺の外側からMENUがスライドして入ってくる
+let edgeTimer = null;
+let lastPointer = { x: 0, y: 0 };
+window.addEventListener('pointermove', (ev) => {
+  if (!desktop || $('app').hidden || ev.pointerType !== 'mouse' || ptrs.size || menu.classList.contains('open')) return;
+  lastPointer = { x: ev.clientX, y: ev.clientY };
+  const W = window.innerWidth;
+  const H = window.innerHeight;
+  const d = { left: ev.clientX, right: W - ev.clientX, top: ev.clientY, bottom: H - ev.clientY };
+  let edge = 'left';
+  for (const k of Object.keys(d)) if (d[k] < d[edge]) edge = k;
+  if (menu.classList.contains('show')) {
+    if (anchor.edge !== 'corner' && Math.hypot(ev.clientX - anchor.x, ev.clientY - anchor.y) > 140) menu.classList.remove('show');
+    return;
+  }
+  if (d[edge] < 18) {
+    if (!edgeTimer) {
+      edgeTimer = setTimeout(() => {
+        edgeTimer = null;
+        const a = { edge };
+        if (edge === 'bottom' || edge === 'top') { a.x = clamp(lastPointer.x, 150, W - 150); a.y = edge === 'bottom' ? H - 42 : 42; }
+        else { a.y = clamp(lastPointer.y, 150, H - 150); a.x = edge === 'right' ? W - 42 : 42; }
+        showMenuAt(a);
+      }, 220);
+    }
+  } else if (edgeTimer) {
+    clearTimeout(edgeTimer);
+    edgeTimer = null;
+  }
 });
-$('collapseAllBtn').addEventListener('click', () => {
-  state.expanded.clear();
-  renderAll(true);
+
+// ---------- ラベル入力の補助(空のときは最近登録した5つ、入力中は前方一致の候補) ----------
+
+const labelInput = $('labelInput');
+let sug = { head: '', list: [] };
+
+function recentLabels(n) {
+  const out = [];
+  for (let i = state.data.urls.length - 1; i >= 0 && out.length < n; i--) {
+    for (const l of state.data.urls[i].labels) if (!out.includes(l) && out.length < n) out.push(l);
+  }
+  return out;
+}
+
+function pickSugg(l) {
+  labelInput.value = sug.head + l + ', ';
+  renderSugg();
+  labelInput.focus();
+}
+
+function renderSugg() {
+  const v = labelInput.value;
+  const m = v.match(/^([\s\S]*?)([^,、，\s]*)$/);
+  const head = m[1];
+  const tok = m[2];
+  const done = parseLabels(head);
+  const all = parseLabels(v);
+  const box = $('sugg');
+  const cap = $('suggCap');
+  box.replaceChildren();
+  sug = { head, list: [] };
+  const chip = (l, on, fn) => {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'chip' + (on ? ' on' : '');
+    b.textContent = l;
+    b.addEventListener('click', fn);
+    box.appendChild(b);
+  };
+  if (tok) {
+    const q = tok.toLowerCase();
+    const lab = recentLabels(Infinity).filter((l) => !done.includes(l));
+    sug.list = lab.filter((l) => l.toLowerCase().startsWith(q))
+      .concat(lab.filter((l) => l.toLowerCase().indexOf(q) > 0))
+      .slice(0, 5);
+    cap.textContent = sug.list.length ? '候補(Tabキーで先頭を選択)' : '一致するラベルはありません。新しいラベルとして登録されます。';
+    sug.list.forEach((l) => chip(l, false, () => pickSugg(l)));
+  } else {
+    cap.textContent = recentLabels(1).length ? '最近登録したラベルから選ぶ' : '';
+    recentLabels(5).forEach((l) => chip(l, all.includes(l), () => {
+      labelInput.value = (all.includes(l) ? all.filter((x) => x !== l) : [...all, l]).join(', ');
+      renderSugg();
+    }));
+  }
+}
+
+labelInput.addEventListener('input', renderSugg);
+labelInput.addEventListener('keydown', (ev) => {
+  if (ev.key === 'Tab' && !ev.shiftKey && sug.list.length) { ev.preventDefault(); pickSugg(sug.list[0]); }
 });
+
+// ---------- 一覧 ----------
+
+function renderList() {
+  const box = $('listBox');
+  box.replaceChildren();
+  if (!state.data.urls.length) {
+    const p = document.createElement('p');
+    p.className = 'sub';
+    p.textContent = '登録済みのURLはありません。';
+    box.appendChild(p);
+    return;
+  }
+  for (const e of state.data.urls) {
+    const row = document.createElement('div');
+    row.className = 'item';
+    const dot = document.createElement('i');
+    dot.className = 'dot';
+    const info = document.createElement('div');
+    info.className = 'info';
+    const a = document.createElement('a');
+    a.href = e.url;
+    a.target = '_blank';
+    a.rel = 'noopener noreferrer';
+    a.textContent = e.title || e.url;
+    info.appendChild(a);
+    if (e.title) {
+      const sm = document.createElement('small');
+      sm.textContent = e.url;
+      info.appendChild(sm);
+    }
+    const chips = document.createElement('span');
+    chips.className = 'chips';
+    for (const l of e.labels) {
+      const c = document.createElement('span');
+      c.className = 'chip';
+      c.textContent = l;
+      chips.appendChild(c);
+    }
+    info.appendChild(chips);
+    const del = document.createElement('button');
+    del.type = 'button';
+    del.className = 'danger mini';
+    del.textContent = '削除';
+    del.addEventListener('click', () => deleteUrl(e));
+    row.append(dot, info, del);
+    box.appendChild(row);
+  }
+}
 
 // ---------- ダウンロード ----------
 
@@ -691,14 +1078,14 @@ function stamp() {
   return `${d.getFullYear()}${p(d.getMonth() + 1)}${p(d.getDate())}`;
 }
 
-$('jsonBtn').addEventListener('click', () => {
+function exportJson() {
   const labels = {};
   state.data.urls.forEach((e) => e.labels.forEach((l) => { (labels[l] = labels[l] || []).push({ url: e.url, title: e.title }); }));
   const out = { user: state.userName, exportedAt: new Date().toISOString(), labels, urls: state.data.urls };
   download(new Blob([JSON.stringify(out, null, 2)], { type: 'application/json' }), `url_label_map_${stamp()}.json`);
-});
+}
 
-$('pngBtn').addEventListener('click', async () => {
+async function exportPng() {
   if (!state.data.urls.length) { setStatus('登録がないため画像を作れません', true); return; }
   // マップ全体(すべてのラベルを開いた状態)を画面外のSVGに描く
   const all = new Set();
@@ -719,7 +1106,7 @@ $('pngBtn').addEventListener('click', async () => {
     canvas.width = Math.max(1, Math.round(w * scale));
     canvas.height = Math.max(1, Math.round(h * scale));
     const ctx = canvas.getContext('2d');
-    ctx.fillStyle = '#ffffff';
+    ctx.fillStyle = '#0d2554';
     ctx.fillRect(0, 0, canvas.width, canvas.height);
     ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
     const blob = await new Promise((resolve) => canvas.toBlob(resolve, 'image/png'));
@@ -728,9 +1115,12 @@ $('pngBtn').addEventListener('click', async () => {
   } catch (e) {
     setStatus(e.message, true);
   }
-});
+}
 
 // ---------- 起動 ----------
+
+placeMenu({ edge: 'corner', x: 0, y: 0 });
+if (!desktop) menu.classList.add('show');
 
 if (state.local) {
   $('localBanner').hidden = false;
