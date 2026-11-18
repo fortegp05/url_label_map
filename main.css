@@ -112,6 +112,10 @@ input:focus, input:focus-visible { outline: none; }
 #panel input, .pill input { font-size: max(16px, 1em); } /* iOSの入力時の自動拡大を防ぐ(#38) */
 #panel input::placeholder { color: #7f9fca; }
 #panel .gap { margin-top: 10px; }
+#importBox { display: none; margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--edge); }
+@media (hover: hover) and (pointer: fine) { #importBox { display: block; } } /* 一括登録はPCのみ(#40) */
+#importResult { margin-top: 8px; white-space: pre-line; }
+#importResult:empty { display: none; }
 #panel button, .notice button { font: inherit; color: var(--ink); cursor: pointer; background: rgba(14, 40, 100, .6); border: 1.5px solid var(--ring); border-radius: 999px; padding: 6px 18px; }
 #panel button:hover, .notice button:hover { box-shadow: 0 0 10px var(--glow); background: rgba(138, 234, 255, .16); }
 #panel button.x { padding: 0 8px; border: 0; background: none; font-size: 1.1rem; box-shadow: none; }

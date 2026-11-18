@@ -48,6 +48,12 @@
           <p class="sub gap" id="suggCap"></p>
           <div class="chips" id="sugg"></div>
           <button type="submit" class="gap">登録</button>
+          <div id="importBox">
+            <p class="sub">CSV(1行に1件: URL, ラベル1, ラベル2, …)またはJSONから、まとめて登録します。取り込み前にJSON保存しておくと、元に戻せます。</p>
+            <button type="button" class="gap" id="importBtn">ファイルから一括登録</button>
+            <input type="file" id="importFile" accept=".csv,.json,.txt,text/csv,application/json" hidden>
+            <p class="sub" id="importResult" role="status" aria-live="polite"></p>
+          </div>
         </form>
         <div id="listBox" hidden></div>
       </div>
