@@ -695,9 +695,11 @@ function fitPanelToKeyboard() {
   const vv = window.visualViewport;
   if (!vv || panel.hidden || !window.matchMedia('(pointer: coarse)').matches) return;
   const inPanel = panel.contains(document.activeElement);
-  if (!kbFit) baseVVH = Math.max(baseVVH, vv.height);
-  if (inPanel) kbFit = true;
-  else if (!(kbFit && vv.height < baseVVH - 80)) { kbFit = false; return; }
+  // キーボードが出ているか(見えている高さが、キーボードなしの高さより大きく縮んでいるか)で判断する。
+  // キーボードを閉じてもフォーカスは入力欄に残るため、フォーカスの有無では判断しない
+  if (!kbFit) baseVVH = inPanel ? Math.max(baseVVH, vv.height) : vv.height;
+  if (!(inPanel || kbFit) || vv.height >= baseVVH - 80) { kbFit = false; return; }
+  kbFit = true;
   panel.style.top = Math.round(vv.offsetTop + 8) + 'px';
   panel.style.bottom = 'auto';
   panel.style.maxHeight = Math.max(120, Math.round(vv.height - 16)) + 'px';
