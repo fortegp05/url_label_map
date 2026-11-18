@@ -702,6 +702,7 @@ function fitPanelToKeyboard() {
   kbFit = true;
   panel.style.top = Math.round(vv.offsetTop + 8) + 'px';
   panel.style.bottom = 'auto';
+  panel.style.zIndex = '25'; // キーボード表示中は、MENU(20)より手前に出す
   panel.style.maxHeight = Math.max(120, Math.round(vv.height - 16)) + 'px';
 }
 
@@ -711,7 +712,7 @@ function placePanel() {
 }
 
 function placePanelBase() {
-  panel.style.left = panel.style.top = panel.style.right = panel.style.bottom = panel.style.maxHeight = '';
+  panel.style.left = panel.style.top = panel.style.right = panel.style.bottom = panel.style.maxHeight = panel.style.zIndex = '';
   if (anchor.edge === 'corner' || panel.hidden) return;
   panel.style.maxHeight = (window.innerHeight - 90) + 'px';
   const w = panel.offsetWidth;
