@@ -636,6 +636,13 @@ window.addEventListener('resize', () => {
 const menu = $('menu');
 const panel = $('panel');
 const dim = $('dim');
+if (window.visualViewport) {
+  const onVV = () => { if (menu.classList.contains('open')) placePanel(); };
+  window.visualViewport.addEventListener('resize', onVV);
+  window.visualViewport.addEventListener('scroll', onVV);
+}
+panel.addEventListener('focusin', () => { placePanel(); });
+panel.addEventListener('focusout', () => { setTimeout(placePanel, 50); });
 const linksSvg = $('links');
 const subBox = $('sub');
 const desktop = !!(window.matchMedia && matchMedia('(hover: hover) and (pointer: fine)').matches);
@@ -680,7 +687,22 @@ function placeMenu(a) {
   });
 }
 
+// スマホでソフトキーボードが出ている間は、見えている領域(visualViewport)の上端寄せに収める(#38)
+function fitPanelToKeyboard() {
+  const vv = window.visualViewport;
+  if (!vv || panel.hidden || !window.matchMedia('(pointer: coarse)').matches) return;
+  if (!panel.contains(document.activeElement)) return;
+  panel.style.top = Math.round(vv.offsetTop + 8) + 'px';
+  panel.style.bottom = 'auto';
+  panel.style.maxHeight = Math.max(120, Math.round(vv.height - 16)) + 'px';
+}
+
 function placePanel() {
+  placePanelBase();
+  fitPanelToKeyboard();
+}
+
+function placePanelBase() {
   panel.style.left = panel.style.top = panel.style.right = panel.style.bottom = panel.style.maxHeight = '';
   if (anchor.edge === 'corner' || panel.hidden) return;
   panel.style.maxHeight = (window.innerHeight - 90) + 'px';

@@ -109,6 +109,7 @@ input:focus, input:focus-visible { outline: none; }
 #panel label { display: block; font-size: .78rem; color: var(--sub); }
 #panel input { display: block; width: 100%; margin-top: 2px; font: inherit; padding: 6px 2px; color: var(--ink); background: none; border: 0; border-bottom: 1px solid var(--edge); border-radius: 0; }
 #panel input:focus { border-bottom-color: var(--ring); }
+#panel input, .pill input { font-size: max(16px, 1em); } /* iOSの入力時の自動拡大を防ぐ(#38) */
 #panel input::placeholder { color: #7f9fca; }
 #panel .gap { margin-top: 10px; }
 #panel button, .notice button { font: inherit; color: var(--ink); cursor: pointer; background: rgba(14, 40, 100, .6); border: 1.5px solid var(--ring); border-radius: 999px; padding: 6px 18px; }
