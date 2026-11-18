@@ -688,10 +688,16 @@ function placeMenu(a) {
 }
 
 // スマホでソフトキーボードが出ている間は、見えている領域(visualViewport)の上端寄せに収める(#38)
+// フォーカスが外れた直後もキーボードが閉じ切るまでは、位置を保つ(閉じ切る前に戻すとパネルが切れる)
+let kbFit = false;
+let baseVVH = 0;
 function fitPanelToKeyboard() {
   const vv = window.visualViewport;
   if (!vv || panel.hidden || !window.matchMedia('(pointer: coarse)').matches) return;
-  if (!panel.contains(document.activeElement)) return;
+  const inPanel = panel.contains(document.activeElement);
+  if (!kbFit) baseVVH = Math.max(baseVVH, vv.height);
+  if (inPanel) kbFit = true;
+  else if (!(kbFit && vv.height < baseVVH - 80)) { kbFit = false; return; }
   panel.style.top = Math.round(vv.offsetTop + 8) + 'px';
   panel.style.bottom = 'auto';
   panel.style.maxHeight = Math.max(120, Math.round(vv.height - 16)) + 'px';
