@@ -101,7 +101,7 @@ input:focus, input:focus-visible { outline: none; }
 @media (prefers-reduced-motion: reduce) { .pill { transition: none; } }
 
 /* 呼び出し式パネル(通常はMENUの隣にJSが配置。cornerのときは右下) */
-#panel { position: fixed; right: var(--gr); bottom: calc(var(--gb) + 172px); width: min(400px, calc(100% - var(--gx) - var(--gr))); max-height: calc(100% - var(--gb) - 172px - 64px); overflow: auto; z-index: 15; background: var(--panel); border: 1px solid var(--edge); border-radius: 6px; backdrop-filter: blur(6px); }
+#panel { position: fixed; right: var(--gr); bottom: calc(var(--gb) + 206px); width: min(400px, calc(100% - var(--gx) - var(--gr))); max-height: calc(100% - var(--gb) - 206px - 64px); overflow: auto; z-index: 15; background: var(--panel); border: 1px solid var(--edge); border-radius: 6px; backdrop-filter: blur(6px); }
 #panel header { display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; border-bottom: 1px solid var(--edge); }
 #panel h2 { margin: 0; font-size: .85rem; letter-spacing: .12em; color: var(--ring); font-weight: normal; }
 #panel h2::before { content: ""; display: inline-block; width: 9px; height: 9px; margin-right: 10px; border-radius: 50%; border: 2px solid var(--ring); box-shadow: 0 0 0 2px transparent, 0 0 0 3px rgba(228, 248, 255, .4); vertical-align: -1px; }
@@ -146,3 +146,5 @@ body.doc .panel a { color: #2b6cb0; }
 /* デバッグモード(#50): ONの間だけ画面の左下に計測結果を出す */
 #dbgPanel { position: fixed; left: 8px; bottom: calc(8px + env(safe-area-inset-bottom, 0px)); max-width: calc(100% - 96px); margin: 0; padding: 6px 8px; z-index: 9; pointer-events: none; font: .66rem/1.45 Consolas, "BIZ UDGothic", "Yu Gothic", Meiryo, monospace; color: var(--sub); background: rgba(2, 8, 34, .78); border: 1px solid var(--edge); border-radius: 4px; white-space: pre-wrap; word-break: break-all; }
 #dbgPanel[hidden] { display: none; }
+/* 子メニューの外の段(デバッグなど): 小さめの円ボタン(#50) */
+.pill.round.outer { width: 46px; height: 46px; font-size: .55rem; border-color: var(--sub); }

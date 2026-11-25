@@ -400,7 +400,8 @@ function placeMenu(a) {
   if (a.edge === 'corner') { menu.style.left = ''; menu.style.top = ''; } else { menu.style.left = a.x + 'px'; menu.style.top = a.y + 'px'; }
   menu.style.setProperty('--ox', HIDE[a.edge][0] + 'px');
   menu.style.setProperty('--oy', HIDE[a.edge][1] + 'px');
-  const r = a.edge === 'corner' ? 96 : 100;
+  // 角(スマホ)は、隣のボタン(直径44px)と重ならないよう、半径を広げる(22.5度刻みで中心間約51px)
+  const r = a.edge === 'corner' ? 130 : 100;
   const angs = FANS[a.edge];
   offs = [];
   menu.querySelectorAll('.mbtn').forEach((b, i) => {
@@ -486,8 +487,9 @@ function subItems(key) {
       { text: 'JSON\n保存', act: 'json' },
       { text: '画像\nPNG', act: 'png' },
       ...sessionMenuItems(),
-      { text: dbg.on ? 'デバッグ\nON' : 'デバッグ\nOFF', act: 'debug' },
       { text: '全データ\n削除', act: 'wipe', danger: true, confirmText: '本当に\n削除', needConfirm: () => true },
+      // 開発者向けの項目は、円弧のさらに外の段に小さく置く(#50)
+      { text: dbg.on ? 'デバッグ\nON' : 'デバッグ\nOFF', act: 'debug', outer: true },
     ];
   }
   if (key === 'fit') {
@@ -535,7 +537,7 @@ function makePill(s) {
   }
   const b = document.createElement('button');
   b.type = 'button';
-  b.className = 'pill round' + (s.danger ? ' danger' : '');
+  b.className = 'pill round' + (s.danger ? ' danger' : '') + (s.outer ? ' outer' : '');
   b.textContent = s.text;
   b.setAttribute('aria-label', s.text.replace('\n', ''));
   let armed = false;
@@ -566,25 +568,42 @@ function layoutSub() {
   const M = menuCenter();
   const P = { x: M.x + offs[i].x, y: M.y + offs[i].y };
   const base = Math.atan2(offs[i].y, offs[i].x);
-  const n = items.length;
-  const step = n > 1 ? rad(40) : 0;
-  const R = 100;
+  // 円弧に並べる通常の項目と、円弧の中心の向きにさらに外の段へ置く項目(outer)に分ける
+  const inner = items.filter((it) => !it.classList.contains('outer'));
+  const n = inner.length;
+  // 角(スマホ)は、円ボタン(直径60px)が隣と重ならず、画面端の親ボタン(全体)の脇でも収まるよう、半径125px・31度刻み。PC(画面端)は従来どおり半径100px・40度刻み
+  const corner = anchor.edge === 'corner';
+  const step = n > 1 ? rad(corner ? 31 : 40) : 0;
+  const R = corner ? 125 : 100;
+  const R_OUTER = R + 60;
   const W = window.innerWidth;
   const H = window.innerHeight;
-  const pts = (b) => items.map((it, j) => {
+  const pts = (b) => items.map((it) => {
     const w = it.offsetWidth;
     const h = it.offsetHeight;
-    const a = b + (j - (n - 1) / 2) * step;
+    const outer = it.classList.contains('outer');
+    const a = outer ? b : b + (inner.indexOf(it) - (n - 1) / 2) * step;
     const dx = Math.cos(a);
     const dy = Math.sin(a);
-    const d = n > 1 ? R : 40 + (w / 2) * Math.abs(dx) + (h / 2) * Math.abs(dy);
+    const d = outer ? R_OUTER : n > 1 ? R : 40 + (w / 2) * Math.abs(dx) + (h / 2) * Math.abs(dy);
     return { x: P.x + dx * d, y: P.y + dy * d, w, h };
   });
   const inside = (p) => p.x >= p.w / 2 + 8 && p.x <= W - p.w / 2 - 8 && p.y >= p.h / 2 + 8 && p.y <= H - p.h / 2 - 8;
+  // 親のボタンとMENUに重ならないこと(円ボタンだけを対象にする。検索の入力欄は対象外)
+  const obstacles = [{ x: M.x, y: M.y, r: 28 }, ...offs.map((o) => ({ x: M.x + o.x, y: M.y + o.y, r: 22 }))];
+  const clear = (c) => c.every((p, j) => !items[j].classList.contains('round') || obstacles.every((o) => Math.hypot(p.x - o.x, p.y - o.y) >= p.w / 2 + o.r + 4));
+  const turns = [0, 10, -10, 20, -20, 30, -30, 45, -45, 60, -60, 80, -80];
   let best = null;
-  for (const t of [0, 10, -10, 20, -20, 30, -30, 45, -45, 60, -60, 80, -80]) {
+  for (const t of turns) {
     const c = pts(base + rad(t));
-    if (c.every(inside)) { best = c; break; }
+    if (c.every(inside) && clear(c)) { best = c; break; }
+  }
+  // 重ならない向きがなければ、画面内に収まる向きを選ぶ
+  if (!best) {
+    for (const t of turns) {
+      const c = pts(base + rad(t));
+      if (c.every(inside)) { best = c; break; }
+    }
   }
   best = best || pts(base);
   best.forEach((p, j) => {
