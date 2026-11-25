@@ -5,6 +5,7 @@
 // ---------- タイトル取得(ブラウザから直接fetch。失敗したらURL表示のまま) ----------
 
 async function fetchTitle(url) {
+  const endTitle = dbg.span('タイトル取得');
   const ctrl = new AbortController();
   const timer = setTimeout(() => ctrl.abort(), 8000);
   try {
@@ -17,6 +18,7 @@ async function fetchTitle(url) {
     return '';
   } finally {
     clearTimeout(timer);
+    endTitle();
   }
 }
 
@@ -39,6 +41,7 @@ $('addForm').addEventListener('submit', async (ev) => {
   $('urlInput').value = '';
   $('labelInput').value = '';
   setStatus('登録しました');
+  dbg.stats();
   renderAll(false);
   persist();
 

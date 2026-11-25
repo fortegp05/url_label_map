@@ -29,11 +29,16 @@ const store = {
       try { return normalize(JSON.parse(localStorage.getItem(LOCAL_KEY))); } catch { return normalize(null); }
     }
     const q = encodeURIComponent(`name='${FILE_NAME}'`);
+    const endSearch = dbg.span('Drive検索');
     const list = await (await drive(`https://www.googleapis.com/drive/v3/files?spaces=appDataFolder&q=${q}&fields=files(id)`)).json();
+    endSearch();
     if (!list.files.length) return normalize(null);
     state.fileId = list.files[0].id;
+    const endGet = dbg.span('Drive本体取得');
     const res = await drive(`https://www.googleapis.com/drive/v3/files/${state.fileId}?alt=media`);
-    return normalize(await res.json());
+    const body = await res.json();
+    endGet();
+    return normalize(body);
   },
 
   async save(data) {
@@ -72,7 +77,9 @@ function persist() {
     if (!state.dirty) return;
     try {
       const snapshot = JSON.stringify(state.data);
+      const endSave = dbg.span('保存');
       await store.save(JSON.parse(snapshot));
+      endSave(state.local ? 'ローカル' : 'Drive');
       if (JSON.stringify(state.data) === snapshot) state.dirty = false;
       $('reauth').hidden = true;
     } catch (e) {
@@ -175,14 +182,22 @@ async function fetchUserName() {
 
 async function start() {
   setStatus('データを読み込み中…');
+  dbg.log(`ページ読込〜起動開始: ${Math.round(performance.now())}ms`);
+  const endAll = dbg.span('起動合計');
   try {
+    const endUser = dbg.span('ユーザー名取得');
     if (state.local) state.userName = 'ローカル試用';
     else state.userName = await fetchUserName();
+    endUser();
+    const endLoad = dbg.span('データ取得');
     state.data = await store.load();
+    endLoad();
+    dbg.stats();
     $('loginPanel').hidden = true;
     $('app').hidden = false;
     setStatus('');
     renderAll(true);
+    endAll();
   } catch (e) {
     setStatus(e.message, true);
   }

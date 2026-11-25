@@ -289,6 +289,7 @@ function labelNames() {
 }
 
 function renderAll(refit) {
+  const end = dbg.span('描画');
   lastBounds = renderMap(svg, state.expanded);
   if (refit || !view) fitView();
   $('emptyMsg').hidden = state.data.urls.length > 0;
@@ -297,6 +298,7 @@ function renderAll(refit) {
   if (activeKey === 'add') renderSugg();
   if (menu.classList.contains('open')) { placePanel(); drawLinks(); }
   updateSearchStatus();
+  end();
 }
 
 function updateSearchStatus() {
@@ -484,6 +486,7 @@ function subItems(key) {
       { text: 'JSON\n保存', act: 'json' },
       { text: '画像\nPNG', act: 'png' },
       ...sessionMenuItems(),
+      { text: dbg.on ? 'デバッグ\nON' : 'デバッグ\nOFF', act: 'debug' },
       { text: '全データ\n削除', act: 'wipe', danger: true, confirmText: '本当に\n削除', needConfirm: () => true },
     ];
   }
@@ -503,6 +506,7 @@ async function runAction(act) {
   else if (act === 'png') await exportPng();
   else if (act === 'logout') await logout();
   else if (act === 'wipe') { await deleteAll(); setMenu(false); }
+  else if (act === 'debug') { dbg.toggle(); renderSub('data'); }
   else if (act === 'fit') fitView();
   else if (act === 'openAll') { state.data.urls.forEach((e) => e.labels.forEach((l) => state.expanded.add(l))); renderAll(true); }
   else if (act === 'closeAll') { state.expanded.clear(); renderAll(true); }

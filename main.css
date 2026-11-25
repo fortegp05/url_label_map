@@ -142,3 +142,7 @@ body.doc header { display: flex; align-items: baseline; justify-content: space-b
 body.doc h1 { font-size: 1.4rem; margin: 8px 0; letter-spacing: .06em; color: var(--ring); text-shadow: 0 0 10px var(--glow); }
 body.doc .panel { background: #fff; border: 1px solid #d8dee4; border-radius: 8px; padding: 12px; margin: 12px 0; }
 body.doc .panel a { color: #2b6cb0; }
+
+/* デバッグモード(#50): ONの間だけ画面の左下に計測結果を出す */
+#dbgPanel { position: fixed; left: 8px; bottom: calc(8px + env(safe-area-inset-bottom, 0px)); max-width: calc(100% - 96px); margin: 0; padding: 6px 8px; z-index: 9; pointer-events: none; font: .66rem/1.45 Consolas, "BIZ UDGothic", "Yu Gothic", Meiryo, monospace; color: var(--sub); background: rgba(2, 8, 34, .78); border: 1px solid var(--edge); border-radius: 4px; white-space: pre-wrap; word-break: break-all; }
+#dbgPanel[hidden] { display: none; }
