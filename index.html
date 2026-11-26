@@ -13,6 +13,11 @@
   <div id="notices">
     <div id="status" class="notice" role="status" aria-live="polite" hidden></div>
     <div id="localBanner" class="notice" hidden>ローカル試用モードです。データはこのブラウザ内にだけ保存され、Google Driveには保存されません。</div>
+    <div id="cacheNudge" class="notice" hidden>
+      <span id="cacheNudgeText"></span>
+      <button id="cacheNudgeOn" type="button">この端末に保存する</button>
+      <button id="cacheNudgeClose" type="button">閉じる</button>
+    </div>
     <div id="reauth" class="notice warn" hidden>
       ログインの有効期限が切れました。未保存の変更はこの画面に保持しています。
       <button id="reauthBtn" type="button">再ログインして保存</button>
@@ -73,6 +78,7 @@
 
   <script src="bg.js"></script>
   <script src="debug.js"></script>
+  <script src="cache.js"></script>
   <script src="main.js"></script>
   <script src="edit.js"></script>
   <script src="store.js"></script>

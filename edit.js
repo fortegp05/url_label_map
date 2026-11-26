@@ -26,6 +26,7 @@ async function fetchTitle(url) {
 
 $('addForm').addEventListener('submit', async (ev) => {
   ev.preventDefault();
+  if (editLocked()) return;
   const url = parseHttpUrl($('urlInput').value);
   const labels = parseLabels($('labelInput').value);
   if (!url) { setStatus('URLは http:// または https:// で始まる形式で入力してください', true); return; }
@@ -56,6 +57,7 @@ $('addForm').addEventListener('submit', async (ev) => {
 });
 
 function deleteUrl(entry) {
+  if (editLocked()) return;
   state.data.urls = state.data.urls.filter((e) => e !== entry);
   renderAll(false);
   persist();
@@ -211,6 +213,7 @@ function enqueueTitles(entries) {
 }
 
 async function importFile(file) {
+  if (editLocked()) return;
   const out = $('importResult');
   const show = (msg) => { out.textContent = msg; placePanel(); drawLinks(); };
   if (file.size > IMPORT.maxBytes) { show('ファイルが大きすぎます(1MBまで)。ファイルを分けてください'); return; }

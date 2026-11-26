@@ -486,6 +486,8 @@ function subItems(key) {
     return [
       { text: 'JSON\n保存', act: 'json' },
       { text: '画像\nPNG', act: 'png' },
+      // この端末への保存(#51)。ローカル試用モードはもともと端末内なので出さない
+      ...(state.local ? [] : [{ text: cache.on ? '端末保存\nON' : '端末保存\nOFF', act: 'cache' }]),
       ...sessionMenuItems(),
       { text: '全データ\n削除', act: 'wipe', danger: true, confirmText: '本当に\n削除', needConfirm: () => true },
       // 開発者向けの項目は、円弧のさらに外の段に小さく置く(#50)
@@ -508,6 +510,7 @@ async function runAction(act) {
   else if (act === 'png') await exportPng();
   else if (act === 'logout') await logout();
   else if (act === 'wipe') { await deleteAll(); setMenu(false); }
+  else if (act === 'cache') { toggleCache(); renderSub('data'); }
   else if (act === 'debug') { dbg.toggle(); renderSub('data'); }
   else if (act === 'fit') fitView();
   else if (act === 'openAll') { state.data.urls.forEach((e) => e.labels.forEach((l) => state.expanded.add(l))); renderAll(true); }
